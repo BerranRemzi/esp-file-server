@@ -7,7 +7,7 @@ output_file = ".\\lib\\Web\\Web.cpp"
 string_start = "R\"(\n"
 string_end = "\n)\""
 
-header = "#include \"Web.h\"\n#include <Arduino.h>\n\nconst String Web_index = "
+header = "#include \"Web.h\"\n#include <Arduino.h>\n\nconst char Web_index[] PROGMEM = "
 
 
 with open(os.getcwd() + input_file, 'r') as f:

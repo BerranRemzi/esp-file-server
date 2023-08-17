@@ -68,34 +68,31 @@ String AddSlashIfNeeded(String inputString)
 
 /* Local function bodies */
 /**
- * Main request handler for the AsyncWebServer.
+ * Main request handler for the AsyncWebServer. Default handler is last one.
  *
  * @param request A pointer to the incoming AsyncWebServerRequest.
  */
 void Handler_Main(AsyncWebServerRequest *request)
 {
-#define HANDLER_FUNCTION_COUNT 5u
+#define HANDLER_FUNCTION_COUNT 6u
   const Handler_Function_t handler[HANDLER_FUNCTION_COUNT] = {
+
       {Handler_UploadProgress, "progress"},
       {Handler_Delete, "delete"},
       {Handler_Download, "download"},
+      {Handler_Create, "create"},
       {Handler_Json, "json"},
-      {Handler_Index, "dir"}};
-
-  bool handlerRequested = false;
+      {Handler_Index, ""},
+  };
 
   for (uint8_t i = 0; i < HANDLER_FUNCTION_COUNT; i++)
   {
-    if (request->hasParam(handler[i].param))
+    if (request->hasParam(handler[i].param) || (i == (HANDLER_FUNCTION_COUNT - 1)))
     {
+      Serial.println(handler[i].param);
       handler[i].p_Request(request);
-      handlerRequested = true;
       break;
     }
-  }
-  if (false == handlerRequested)
-  {
-    handler[HANDLER_FUNCTION_COUNT - 1u].p_Request(request);
   }
 }
 
@@ -106,7 +103,16 @@ void Handler_Main(AsyncWebServerRequest *request)
  */
 void Handler_Index(AsyncWebServerRequest *request)
 {
-  request->send(200, "text/html", Web_index);
+  String path = request->url();
+  File file = SD.open(path, "r");
+  if (file.isFile())
+  {
+    request->send(file, path, String(), true); // Display file
+  }
+  else
+  {
+    request->send(200, "text/html", (const __FlashStringHelper *)Web_index);
+  }
 }
 
 /**
@@ -173,15 +179,27 @@ void Handler_UploadProgress(AsyncWebServerRequest *request)
  */
 void Handler_Delete(AsyncWebServerRequest *request)
 {
-  String filename = request->url();
-  if (FILE_SYSTEM.remove(filename))
+  String path = request->url();
+  if (FILE_SYSTEM.exists(path))
   {
-    // request->send(200, "text/plain", "File deleted successfully.");
+    if (FILE_SYSTEM.remove(path))
+    {
+      // request->send(200, "text/plain", "File deleted successfully.");
+    }
+    else if (FILE_SYSTEM.rmdir(path))
+    {
+      // request->send(200, "text/plain", "Folder deleted successfully.");
+    }
+    else
+    {
+      // request->send(200, "text/plain", "Error deleting file or folder!");
+    }
   }
   else
   {
-    // request->send(500, "text/plain", "Error deleting file.");
+    // request->send(200, "text/plain", "File or folder does not exist.");
   }
+
   request->redirect("/");
 }
 
@@ -203,7 +221,7 @@ void Handler_Create(AsyncWebServerRequest *request)
   }
   request->redirect("/");
 }
-const size_t JSON_BUFFER_SIZE = 16 * 1024; // Adjust as needed
+const size_t JSON_BUFFER_SIZE = 8 * 1024; // Adjust as needed
 StaticJsonDocument<JSON_BUFFER_SIZE> jsonDocument;
 
 /*
@@ -226,6 +244,13 @@ void Handler_Json(AsyncWebServerRequest *request)
     File entry = dir.openFile("r");
 #else
   File dir = FILE_SYSTEM.open(path);
+  if (!dir)
+  {
+    request->send(500);
+    request->redirect("/");
+    return;
+  }
+
   File entry = dir.openNextFile();
   while (entry)
   {
@@ -235,6 +260,7 @@ void Handler_Json(AsyncWebServerRequest *request)
     JsonObject fileInfo = filesArray.createNestedObject();
     fileInfo["name"] = String(entry.name());
     fileInfo["size"] = entry.isDirectory() ? "" : String(fileSize);
+    fileInfo["date"] = entry.getLastWrite();
 
     entry.close();
 #if !LITTLE_FS
@@ -250,7 +276,7 @@ void Handler_Json(AsyncWebServerRequest *request)
   serializeJson(jsonDocument, jsonString);
 
   // Print the JSON string
-  request->send(200, "text/plain", jsonString);
+  request->send(200, "application/json", jsonString);
 }
 
 /**
@@ -283,26 +309,27 @@ void setup()
     return;
   }
 #else
-  Serial.print("\r\nWaiting for SD card to initialise...");
+  Serial.println("\r\nWaiting for SD card to initialise...");
   pinMode(5, OUTPUT);
   if (!FILE_SYSTEM.begin(5, 40000000))
   {
-    Serial.println("Initialising failed!");
+    Serial.println("Initialising of SD failed!");
     delay(500);
     ESP.restart();
     return;
   }
 #endif /* LITTLE_FS */
-
+  Serial.print("\r\nWaiting for WiFi connection");
   WiFi.begin(ssid, password);
   while (WiFi.status() != WL_CONNECTED)
   {
     delay(500);
-    Serial.println("Connecting to WiFi...");
+    Serial.print(".");
   }
 
   Serial.println("Connected to WiFi.");
   Serial.println((WiFi.localIP().toString()));
+  configTime(0, 0, "pool.ntp.org");
 
   server.on(
       "/upload", HTTP_POST, [](AsyncWebServerRequest *request)
@@ -310,26 +337,6 @@ void setup()
         request->send(200, "text/html", ""); // Respond immediately to the file upload request
       },
       Handler_Upload);
-
-  // server.on("/delete", HTTP_GET, Handler_DeleteFile);
-
-  // Route for creating a folder
-  server.on("/create", HTTP_GET, [](AsyncWebServerRequest *request)
-            { 
-              String folderName = request->getParam("name")->value();
-    
-              if (FILE_SYSTEM.mkdir(folderName)) {
-                request->send(200, "text/plain", "Folder created: " + folderName);
-              } else {
-                request->send(500, "text/plain", "Failed to create folder");
-              }
-              request->redirect("/"); });
-
-  // server.on("/progress", Handler_UploadProgress);
-  // server.on("/json", HTTP_GET, Handler_Json);
-
-  //server.on("/index.php", HTTP_GET, Handler_Download);
-  server.on("/", HTTP_GET, Handler_Index);
 
   // Default handler for non-existent routes
   server.onNotFound(Handler_Main);

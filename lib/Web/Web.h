@@ -1,4 +1,4 @@
 #pragma once
 #include <Arduino.h>
 
-extern const String Web_index;
+extern const char Web_index[];

@@ -1,7 +1,7 @@
 #include "Web.h"
 #include <Arduino.h>
 
-const String Web_index = R"(
+const char Web_index[] PROGMEM = R"(
 <!DOCTYPE html>
 <html>
 
@@ -69,15 +69,13 @@ const String Web_index = R"(
   <h1 id='header'>Index of</h1>
 
   <form method='POST' action='/upload' enctype='multipart/form-data'><input type='file' name='file'
-      id='fileInput'><input type='submit' value='Upload'></form>
+      id='fileInput'><input type='submit' value='Upload' onclick=uploadFile()></form>
   <progress id='progress' value='0' max='100' style='display: none;'></progress>
   <p id='fileSize'></p>
   <hr>
-  <form action='/create' onsubmit='createFolder()'>
-    <label for='folderName'>Folder name:</label>
-    <input type='text' name='name' value='New'>
-    <input type='submit' value='Create'>
-  </form>
+  <label for='folderName'>Folder name:</label>
+  <input type='text' id='folderNameInput' value='New'>
+  <input type='button' value='Create' onclick='createFolder()'>
   <hr>
   <div id='parentDirLinkBox' style='display: none;'>
     <a id='parentDirLink' class='icon up' href='../'>
@@ -89,6 +87,7 @@ const String Web_index = R"(
       <tr>
         <th>Name</th>
         <th>Size</th>
+        <th>Modified</th>
         <th>Actions</th>
       </tr>
     </thead>
@@ -119,7 +118,8 @@ const String Web_index = R"(
             var row = tableBody.insertRow();
             var nameCell = row.insertCell(0);
             var sizeCell = row.insertCell(1);
-            var actionsCell = row.insertCell(2);
+            var dateCell = row.insertCell(2);
+            var actionsCell = row.insertCell(3);
 
             var nameLink = document.createElement('a');
             if (item.size != '') {
@@ -139,6 +139,7 @@ const String Web_index = R"(
             actionLink.href = uri + item.name + '?delete';
             actionLink.innerHTML = 'Delete';
             actionsCell.appendChild(actionLink);
+            dateCell.innerHTML = new Date(item.date*1000).toLocaleString();
           });
         })
         .catch(error => {
@@ -160,31 +161,8 @@ const String Web_index = R"(
       }
 
     }
-    function deleteFile(filename) {
-      if (confirm('Are you sure you want to delete ' + filename + '?')) {
-        var xhr = new XMLHttpRequest();
-        xhr.onreadystatechange = function () {
-          if (xhr.readyState === 4 && xhr.status === 200) {
-            window.location.reload();
-          }
-        };
-        xhr.open('GET', filename + '?delete', true);
-        xhr.send();
-      }
-    }
     function uploadFile() {
-      var fileInput = document.getElementById('fileInput');
-      var file = fileInput.files[0];
-      var xhr = new XMLHttpRequest();
-      xhr.onreadystatechange = function () {
-        if (xhr.readyState === 4 && xhr.status === 200) {
-          document.getElementById('status').innerHTML = 'File uploaded successfully.';
-        }
-      };
-      xhr.open('POST', '/upload', true);
-      var formData = new FormData();
-      formData.append('file', file, file.name);
-      xhr.send(formData);
+      setTimeout(function () { updateProgress(); }, 500);
     }
     function updateProgress() {
       var xhttp = new XMLHttpRequest();
@@ -192,16 +170,18 @@ const String Web_index = R"(
         if (this.readyState == 4 && this.status == 200) {
           /* content += '                        document.getElementById('millisValue').innerText = this.responseText; */
           document.getElementById('progress').value = this.responseText;
-          setTimeout(function () { updateProgress(); }, 100);
+          setTimeout(function () { updateProgress(); }, 500);
         }
       };
       xhttp.open('GET', '/?progress', true);
       xhttp.send();
     }
     function createFolder() {
+      const folderName = document.getElementById("folderNameInput").value;
       var uri = window.location.pathname;
+      console.log(uri);
       var xhr = new XMLHttpRequest();
-      xhr.open('GET', uri + '/' + filename+'?create', true);
+      xhr.open('GET', uri + folderName + '?create', true);
       xhr.send();
     }
   </script>
