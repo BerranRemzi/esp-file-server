@@ -168,7 +168,7 @@ const String Web_index = R"(
             window.location.reload();
           }
         };
-        xhr.open('GET', filename + '?delete=', true);
+        xhr.open('GET', filename + '?delete', true);
         xhr.send();
       }
     }
@@ -195,13 +195,13 @@ const String Web_index = R"(
           setTimeout(function () { updateProgress(); }, 100);
         }
       };
-      xhttp.open('GET', '/index.php?progress', true);
+      xhttp.open('GET', '/?progress', true);
       xhttp.send();
     }
     function createFolder() {
       var uri = window.location.pathname;
       var xhr = new XMLHttpRequest();
-      xhr.open('GET', '/index.php?create=' + uri + '/' + filename, true);
+      xhr.open('GET', uri + '/' + filename+'?create', true);
       xhr.send();
     }
   </script>

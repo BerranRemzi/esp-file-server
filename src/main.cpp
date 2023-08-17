@@ -332,8 +332,7 @@ void setup()
   server.on("/", HTTP_GET, Handler_Index);
 
   // Default handler for non-existent routes
-
-  //server.onNotFound(Handler_Main);
+  server.onNotFound(Handler_Main);
 
   server.begin();
 }
