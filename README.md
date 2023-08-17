@@ -50,7 +50,7 @@ Before connecting to the ESP8266 device, it's essential to know its IP address. 
 1. Clone or download this repository to your local machine.
 2. Open the project in PlatformIO IDE.
 3. Configure your Wi-Fi credentials in the `config.h` file.
-4. If using an SD card for the file system, insert the SD card into the appropriate slot on the ESP8266 board.
+4. Insert the SD card into the appropriate slot on the ESP8266 board.
 5. Upload the code to your ESP8266 board using PlatformIO IDE. The necessary libraries will be automatically downloaded.
 
 ## Usage
@@ -65,13 +65,19 @@ Before connecting to the ESP8266 device, it's essential to know its IP address. 
 
 ### Downloading Files
 
-1. From the main page, click on the file you want to download.
+1. From the main page, click on the file name you want to download.
 2. The file will be downloaded to your computer.
 
 ### Deleting Files and Folders
 
-1. From the main page, select the file or folder you want to delete.
+1. From the main page, find the file or folder you want to delete.
 2. Click the "Delete" button to remove the selected item.
+
+### Creating Folders
+
+1. Enter the name of the new folder to text box "Folder name."
+2. From the main page, click the "Create" button.
+3. The new folder will be created on the device.
 
 ### Viewing File List
 
