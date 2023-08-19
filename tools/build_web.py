@@ -2,7 +2,7 @@ import os
 
 print('getcwd:      ', os.getcwd())
 
-input_file = '.\\lib\\Web\\index.html'
+input_file = '.\\tools\\flack\\templates\\index.html'
 output_file = ".\\lib\\Web\\Web.cpp"
 string_start = "R\"(\n"
 string_end = "\n)\""

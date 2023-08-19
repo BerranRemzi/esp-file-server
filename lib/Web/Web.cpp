@@ -96,14 +96,16 @@ const char Web_index[] PROGMEM = R"(
     </tbody>
   </table>
   <hr>
+  <label id='response'></label>
   <script>
     function readJSON() {
       document.getElementById('progress').style.display = 'none';
       /* Get a reference to the table body */
       var tableBody = document.getElementById('directoryTable').getElementsByTagName('tbody')[0];
-
+      while (tableBody.firstChild) {
+        tableBody.removeChild(tableBody.firstChild);
+      }
       /* Make a GET request to the '/json' endpoint */
-
       fetch(window.location.pathname + '?json')
         .then(response => response.json())
         .then(jsonData => {
@@ -135,11 +137,13 @@ const char Web_index[] PROGMEM = R"(
             nameLink.innerHTML = item.name;
             nameCell.appendChild(nameLink);
 
-            var actionLink = document.createElement('a');
-            actionLink.href = uri + item.name + '?delete';
+            var actionLink = document.createElement('button');
+            actionLink.setAttribute('onclick', 'window.location.href=\'' + uri + item.name + '?delete\'');
+
+            //actionLink.setAttribute('onclick', window.location.href + uri + item.name + '?delete');
             actionLink.innerHTML = 'Delete';
             actionsCell.appendChild(actionLink);
-            dateCell.innerHTML = new Date(item.date*1000).toLocaleString();
+            dateCell.innerHTML = new Date(item.date * 1000).toLocaleString();
           });
         })
         .catch(error => {
@@ -176,14 +180,25 @@ const char Web_index[] PROGMEM = R"(
       xhttp.open('GET', '/?progress', true);
       xhttp.send();
     }
-    function createFolder() {
-      const folderName = document.getElementById("folderNameInput").value;
-      var uri = window.location.pathname;
-      console.log(uri);
-      var xhr = new XMLHttpRequest();
-      xhr.open('GET', uri + folderName + '?create', true);
-      xhr.send();
+    async function createFolder() {
+      const folderName = document.getElementById('folderNameInput').value;
+      const uri = window.location.pathname;
+      const newUri = uri + folderName + '/';
+
+      try {
+        const response = await fetch(newUri + '?create');
+        const responseLabel = document.getElementById('response');
+        if (response.ok) {
+          responseLabel.innerHTML = 'OK';
+        } else {
+          responseLabel.innerHTML = 'Error creating folder';
+        }
+      } catch (error) {
+        responseLabel.innerHTML = 'An error occurred: ' + error;
+      }
+      readJSON();
     }
+
   </script>
 </body>
 

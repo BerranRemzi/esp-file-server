@@ -89,7 +89,6 @@ void Handler_Main(AsyncWebServerRequest *request)
   {
     if (request->hasParam(handler[i].param) || (i == (HANDLER_FUNCTION_COUNT - 1)))
     {
-      Serial.println(handler[i].param);
       handler[i].p_Request(request);
       break;
     }
@@ -229,11 +228,9 @@ StaticJsonDocument<JSON_BUFFER_SIZE> jsonDocument;
  */
 void Handler_Json(AsyncWebServerRequest *request)
 {
-
   jsonDocument.clear();
 
   String path = AddSlashIfNeeded(request->url()); // Get the URL from the request
-  Serial.println(path);
   jsonDocument["path"] = path;
   JsonArray filesArray = jsonDocument.createNestedArray("contents");
 
