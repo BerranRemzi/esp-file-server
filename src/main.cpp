@@ -128,7 +128,6 @@ void Handler_Upload(AsyncWebServerRequest *request, String filename, size_t inde
 {
   static File file;
   static size_t fileSize = 0;
-  const char *uploadStatus = "Idle";
 
   if (!index)
   {
@@ -145,19 +144,14 @@ void Handler_Upload(AsyncWebServerRequest *request, String filename, size_t inde
     if (final)
     {
       file.close();
-      uploadStatus = "File uploaded successfully.";
+      request->send(200, "text/plain", "File uploaded successfully.");
       progress = 100;
-      // Send an empty response to indicate completion and redirect to the home page
-      // request->send(200, "text/plain", "/");
-      request->redirect("/");
     }
   }
   else
   {
     progress = 0;
-    uploadStatus = "Error uploading file.";
-    // request->send(500, "text/plain", uploadStatus);
-    request->redirect("/");
+    request->send(500, "text/plain", "Error uploading file.");
   }
 }
 
@@ -183,23 +177,21 @@ void Handler_Delete(AsyncWebServerRequest *request)
   {
     if (FILE_SYSTEM.remove(path))
     {
-      // request->send(200, "text/plain", "File deleted successfully.");
+      request->send(200, "text/plain", "File deleted successfully.");
     }
     else if (FILE_SYSTEM.rmdir(path))
     {
-      // request->send(200, "text/plain", "Folder deleted successfully.");
+      request->send(200, "text/plain", "Folder deleted successfully.");
     }
     else
     {
-      // request->send(200, "text/plain", "Error deleting file or folder!");
+      request->send(500, "text/plain", "Error deleting file or folder!");
     }
   }
   else
   {
-    // request->send(200, "text/plain", "File or folder does not exist.");
+    request->send(500, "text/plain", "File or folder does not exist.");
   }
-
-  request->redirect("/");
 }
 
 /**
@@ -218,7 +210,6 @@ void Handler_Create(AsyncWebServerRequest *request)
   {
     request->send(500, "text/plain", "Failed to create folder");
   }
-  request->redirect("/");
 }
 const size_t JSON_BUFFER_SIZE = 8 * 1024; // Adjust as needed
 StaticJsonDocument<JSON_BUFFER_SIZE> jsonDocument;
@@ -244,7 +235,6 @@ void Handler_Json(AsyncWebServerRequest *request)
   if (!dir)
   {
     request->send(500);
-    request->redirect("/");
     return;
   }
 
@@ -331,7 +321,7 @@ void setup()
   server.on(
       "/upload", HTTP_POST, [](AsyncWebServerRequest *request)
       {
-        request->send(200, "text/html", ""); // Respond immediately to the file upload request
+        request->send(201); // Respond immediately to the file upload request
       },
       Handler_Upload);
 

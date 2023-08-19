@@ -69,13 +69,13 @@ const char Web_index[] PROGMEM = R"(
   <h1 id='header'>Index of</h1>
 
   <form method='POST' action='/upload' enctype='multipart/form-data'><input type='file' name='file'
-      id='fileInput'><input type='submit' value='Upload' onclick=uploadFile()></form>
+      id='fileInput'><input type='submit' value='Upload' onclick=updateProgress()></form>
   <progress id='progress' value='0' max='100' style='display: none;'></progress>
   <p id='fileSize'></p>
   <hr>
   <label for='folderName'>Folder name:</label>
   <input type='text' id='folderNameInput' value='New'>
-  <input type='button' value='Create' onclick='createFolder()'>
+  <input type='button' value='Create' onclick=performOperation('create')>
   <hr>
   <div id='parentDirLinkBox' style='display: none;'>
     <a id='parentDirLink' class='icon up' href='../'>
@@ -98,104 +98,100 @@ const char Web_index[] PROGMEM = R"(
   <hr>
   <label id='response'></label>
   <script>
-    function readJSON() {
-      document.getElementById('progress').style.display = 'none';
-      /* Get a reference to the table body */
-      var tableBody = document.getElementById('directoryTable').getElementsByTagName('tbody')[0];
-      while (tableBody.firstChild) {
-        tableBody.removeChild(tableBody.firstChild);
-      }
-      /* Make a GET request to the '/json' endpoint */
-      fetch(window.location.pathname + '?json')
-        .then(response => response.json())
-        .then(jsonData => {
-          var uri = jsonData.path;
+    async function readJSON() {
+      try {
+        const response = await fetch(window.location.pathname + '?json');
+        const jsonData = await response.json();
 
-          document.getElementById('parentDirLinkBox').style.display = (uri == '/') ? 'hide' : 'block';
-          document.getElementById('title').innerHTML = 'Index of ' + uri;
-          document.getElementById('header').innerHTML = 'Index of ' + uri;
+        document.getElementById('progress').style.display = 'none';
 
-          /* Loop through the JSON data and generate table rows */
-          jsonData.contents.forEach(function (item) {
-            var row = tableBody.insertRow();
-            var nameCell = row.insertCell(0);
-            var sizeCell = row.insertCell(1);
-            var dateCell = row.insertCell(2);
-            var actionsCell = row.insertCell(3);
+        const uri = jsonData.path;
+        const parentDirLinkBox = document.getElementById('parentDirLinkBox');
+        const title = document.getElementById('title');
+        const header = document.getElementById('header');
+        const tableBody = document.getElementById('directoryTable').getElementsByTagName('tbody')[0];
 
-            var nameLink = document.createElement('a');
-            if (item.size != '') {
-              nameLink.className = 'icon file';
-              nameLink.href = uri + item.name;
-              sizeCell.innerHTML = item.size + ' bytes'
-            } else {
-              nameLink.className = 'icon dir';
-              nameLink.href = uri + item.name + '/';
-              sizeCell.innerHTML = item.size;
-            }
+        parentDirLinkBox.style.display = (uri === '/') ? 'none' : 'block';
+        title.innerHTML = header.innerHTML = 'Index of ' + uri;
 
-            nameLink.innerHTML = item.name;
-            nameCell.appendChild(nameLink);
+        tableBody.innerHTML = ''; // Clear table body
 
-            var actionLink = document.createElement('button');
-            actionLink.setAttribute('onclick', 'window.location.href=\'' + uri + item.name + '?delete\'');
+        jsonData.contents.forEach(item => {
+          const row = tableBody.insertRow();
+          const [nameCell, sizeCell, dateCell, actionsCell] = Array.from({ length: 4 }, () => row.insertCell());
 
-            //actionLink.setAttribute('onclick', window.location.href + uri + item.name + '?delete');
-            actionLink.innerHTML = 'Delete';
-            actionsCell.appendChild(actionLink);
-            dateCell.innerHTML = new Date(item.date * 1000).toLocaleString();
-          });
-        })
-        .catch(error => {
-          console.error('Error fetching JSON data:', error);
+          const nameLink = document.createElement('a');
+          const actionButton = document.createElement('button');
+
+          if (item.size !== '') {
+            nameLink.className = 'icon file';
+            nameLink.href = uri + item.name;
+            sizeCell.innerHTML = item.size + ' bytes';
+          } else {
+            nameLink.className = 'icon dir';
+            nameLink.href = uri + item.name + '/';
+            sizeCell.innerHTML = item.size;
+          }
+
+          nameLink.innerHTML = item.name;
+          nameCell.appendChild(nameLink);
+
+          actionButton.textContent = 'Delete';
+          actionButton.setAttribute('onclick', 'performOperation(\'delete\', \'' + item.name + '\')');
+
+          actionsCell.appendChild(actionButton);
+          dateCell.innerHTML = new Date(item.date * 1000).toLocaleString();
         });
+      } catch (error) {
+        console.error('Error fetching JSON data:', error);
+      }
     }
+
     document.getElementById('fileInput').addEventListener('change', updateFileSize);
     function updateFileSize() {
       var fileInput = document.getElementById('fileInput');
       var fileSize = 0;
+      var fileSizeElement = document.getElementById('fileSize');
+      var progressElement = document.getElementById('progress');
+
       if (fileInput.files.length > 0) {
         fileSize = fileInput.files[0].size;
-        document.getElementById('fileSize').innerHTML = 'Selected file size: ' + (fileSize / 1024).toFixed(2) + ' KB';
-        document.getElementById('fileSize').style.display = 'block';
-        document.getElementById('progress').style.display = 'block';
+        fileSizeElement.innerHTML = `Selected file size: ${(fileSize / 1024).toFixed(2)} KB`;
+        fileSizeElement.style.display = progressElement.style.display = 'block';
       } else {
-        document.getElementById('fileSize').style.display = 'none';
-        document.getElementById('progress').style.display = 'none';
+        fileSizeElement.style.display = progressElement.style.display = 'none';
       }
+    }
 
-    }
-    function uploadFile() {
-      setTimeout(function () { updateProgress(); }, 500);
-    }
-    function updateProgress() {
-      var xhttp = new XMLHttpRequest();
-      xhttp.onreadystatechange = function () {
-        if (this.readyState == 4 && this.status == 200) {
-          /* content += '                        document.getElementById('millisValue').innerText = this.responseText; */
-          document.getElementById('progress').value = this.responseText;
-          setTimeout(function () { updateProgress(); }, 500);
-        }
-      };
-      xhttp.open('GET', '/?progress', true);
-      xhttp.send();
-    }
-    async function createFolder() {
-      const folderName = document.getElementById('folderNameInput').value;
-      const uri = window.location.pathname;
-      const newUri = uri + folderName + '/';
-
+    async function updateProgress() {
       try {
-        const response = await fetch(newUri + '?create');
-        const responseLabel = document.getElementById('response');
+        const response = await fetch('/?progress');
         if (response.ok) {
-          responseLabel.innerHTML = 'OK';
-        } else {
-          responseLabel.innerHTML = 'Error creating folder';
+          const progressValue = await response.text();
+          document.getElementById('progress').value = progressValue;
+          if (progressValue < 100) { setTimeout(updateProgress, 500); }
         }
       } catch (error) {
+        console.error('Error updating progress:', error);
+      }
+    }
+
+    async function performOperation(operation, itemName = document.getElementById('folderNameInput').value) {
+      const uri = window.location.pathname;
+      const newUri = uri + itemName + (operation === 'create' ? '/' : '');
+      try {
+        const response = await fetch(newUri + '?' + operation);
+        const responseLabel = document.getElementById('response');
+
+        response.text().then(responseText => {
+          responseLabel.innerHTML = responseText;
+        });
+
+      } catch (error) {
+        const responseLabel = document.getElementById('response');
         responseLabel.innerHTML = 'An error occurred: ' + error;
       }
+
       readJSON();
     }
 
