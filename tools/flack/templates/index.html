@@ -61,17 +61,17 @@
 
 </head>
 
-<body onload='readJSON()'>
+<body onload='loadDirContents()'>
   <h1 id='header'>Index of</h1>
 
-  <form method='POST' action='/upload' enctype='multipart/form-data'><input type='file' name='file'
-      id='fileInput'><input type='submit' value='Upload' onclick=updateProgress()></form>
+  <input type='file' id='fileInput'>
+  <button onclick='uploadFile()'>Upload</button>
   <progress id='progress' value='0' max='100' style='display: none;'></progress>
   <p id='fileSize'></p>
   <hr>
   <label for='folderName'>Folder name:</label>
   <input type='text' id='folderNameInput' value='New'>
-  <input type='button' value='Create' onclick=performOperation('create')>
+  <input type='button' value='Create' onclick='performOperation(`create`)'>
   <hr>
   <div id='parentDirLinkBox' style='display: none;'>
     <a id='parentDirLink' class='icon up' href='../'>
@@ -94,21 +94,24 @@
   <hr>
   <label id='response'></label>
   <script>
-    async function readJSON() {
+    const parentDirLinkBox = document.getElementById('parentDirLinkBox');
+    const title = document.getElementById('title');
+    const header = document.getElementById('header');
+    const tableBody = document.querySelector('#directoryTable tbody');
+    const fileInput = document.getElementById('fileInput');
+    const fileSizeElement = document.getElementById('fileSize');
+    const progressElement = document.getElementById('progress');
+    const responseElement = document.getElementById('response');
+    const folderNameInput = document.getElementById('folderNameInput');
+
+    async function loadDirContents() {
       try {
-        const response = await fetch(window.location.pathname + '?json');
+        const response = await fetch(`${window.location.pathname}?json`);
         const jsonData = await response.json();
 
-        document.getElementById('progress').style.display = 'none';
-
         const uri = jsonData.path;
-        const parentDirLinkBox = document.getElementById('parentDirLinkBox');
-        const title = document.getElementById('title');
-        const header = document.getElementById('header');
-        const tableBody = document.getElementById('directoryTable').getElementsByTagName('tbody')[0];
-
         parentDirLinkBox.style.display = (uri === '/') ? 'none' : 'block';
-        title.innerHTML = header.innerHTML = 'Index of ' + uri;
+        title.textContent = header.textContent = `Index of ${uri}`;
 
         tableBody.innerHTML = ''; // Clear table body
 
@@ -120,23 +123,22 @@
           const actionButton = document.createElement('button');
 
           if (item.size !== '') {
-            nameLink.className = 'icon file';
-            nameLink.href = uri + item.name;
-            sizeCell.innerHTML = item.size + ' bytes';
+            nameLink.classList.add('icon', 'file');
+            nameLink.href = `${uri}${item.name}`;
+            sizeCell.textContent = `${item.size} bytes`;
           } else {
-            nameLink.className = 'icon dir';
-            nameLink.href = uri + item.name + '/';
-            sizeCell.innerHTML = item.size;
+            nameLink.classList.add('icon', 'dir');
+            nameLink.href = `${uri}${item.name}/`;
           }
 
-          nameLink.innerHTML = item.name;
+          nameLink.textContent = item.name;
           nameCell.appendChild(nameLink);
 
           actionButton.textContent = 'Delete';
-          actionButton.setAttribute('onclick', 'performOperation(\'delete\', \'' + item.name + '\')');
+          actionButton.onclick = () => performOperation('delete', item.name);
 
           actionsCell.appendChild(actionButton);
-          dateCell.innerHTML = new Date(item.date * 1000).toLocaleString();
+          dateCell.textContent = new Date(item.date * 1000).toLocaleString();
         });
       } catch (error) {
         console.error('Error fetching JSON data:', error);
@@ -144,53 +146,73 @@
     }
 
     document.getElementById('fileInput').addEventListener('change', updateFileSize);
+
     function updateFileSize() {
-      var fileInput = document.getElementById('fileInput');
-      var fileSize = 0;
-      var fileSizeElement = document.getElementById('fileSize');
-      var progressElement = document.getElementById('progress');
-
-      if (fileInput.files.length > 0) {
-        fileSize = fileInput.files[0].size;
-        fileSizeElement.innerHTML = `Selected file size: ${(fileSize / 1024).toFixed(2)} KB`;
-        fileSizeElement.style.display = progressElement.style.display = 'block';
-      } else {
-        fileSizeElement.style.display = progressElement.style.display = 'none';
-      }
+      const fileSize = fileInput.files.length > 0 ? fileInput.files[0].size : 0;
+      fileSizeElement.textContent = fileSize > 0 ? `Selected file size: ${fileSize} bytes` : '';
     }
 
-    async function updateProgress() {
-      try {
-        const response = await fetch('/?progress');
-        if (response.ok) {
-          const progressValue = await response.text();
-          document.getElementById('progress').value = progressValue;
-          if (progressValue < 100) { setTimeout(updateProgress, 500); }
-        }
-      } catch (error) {
-        console.error('Error updating progress:', error);
-      }
+    function updateUploadProgress(percentage) {
+      progressElement.value = percentage;
+      progressElement.style.display = (percentage > 0 && percentage < 100) ? 'block' : 'none';
     }
 
-    async function performOperation(operation, itemName = document.getElementById('folderNameInput').value) {
-      const uri = window.location.pathname;
-      const newUri = uri + itemName + (operation === 'create' ? '/' : '');
-      try {
-        const response = await fetch(newUri + '?' + operation);
-        const responseLabel = document.getElementById('response');
+    async function uploadFile() {
+      const file = fileInput.files[0];
 
-        response.text().then(responseText => {
-          responseLabel.innerHTML = responseText;
+      if (!file) {
+        alert('Please select a file to upload.');
+        return;
+      }
+
+      const formData = new FormData();
+      formData.append('file', file);
+
+      try {
+        const xhr = new XMLHttpRequest();
+        xhr.open('POST', '/', true);
+
+        xhr.upload.addEventListener('progress', event => {
+          if (event.lengthComputable) {
+            const percentCompleted = Math.round((event.loaded / event.total) * 100);
+            updateUploadProgress(percentCompleted);
+          }
         });
 
-      } catch (error) {
-        const responseLabel = document.getElementById('response');
-        responseLabel.innerHTML = 'An error occurred: ' + error;
-      }
+        xhr.onload = () => {
+          if (xhr.status === 200) {
+            updateUploadProgress(100);
+            fileInput.value = '';
+            updateFileSize();
+          } else {
+            console.error('Error:', xhr.statusText);
+          }
+          responseElement.textContent = xhr.responseText;
+          loadDirContents();
+        };
 
-      readJSON();
+        xhr.onerror = () => {
+          console.error('Request failed');
+        };
+
+        xhr.send(formData);
+      } catch (error) {
+        console.error('Request failed:', error);
+      }
     }
 
+    async function performOperation(operation, itemName = folderNameInput.value) {
+      const uri = window.location.pathname;
+      const newUri = `${uri}${itemName}${operation === 'create' ? '/' : ''}`;
+      try {
+        const response = await fetch(`${newUri}?${operation}`);
+        const responseText = await response.text();
+        responseElement.textContent = responseText;
+      } catch (error) {
+        responseElement.textContent = `An error occurred: ${error}`;
+      }
+      loadDirContents();
+    }
   </script>
 </body>
 

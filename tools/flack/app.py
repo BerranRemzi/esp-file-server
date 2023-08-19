@@ -3,8 +3,7 @@ import os
 
 app = Flask(__name__)
 
-
-@app.route("/upload", methods=["POST"])
+@app.route("/", methods=["POST"])
 def upload():
     file = request.files["file"]
     if file:

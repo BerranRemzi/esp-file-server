@@ -15,7 +15,7 @@
 #define FILE_SYSTEM SD
 #endif
 
-/* typedef's and structs */
+/* typedefs and structs */
 typedef struct
 {
   void (*p_Request)(AsyncWebServerRequest *);
@@ -319,7 +319,7 @@ void setup()
   configTime(0, 0, "pool.ntp.org");
 
   server.on(
-      "/upload", HTTP_POST, [](AsyncWebServerRequest *request)
+      "/", HTTP_POST, [](AsyncWebServerRequest *request)
       {
         request->send(201); // Respond immediately to the file upload request
       },
