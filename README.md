@@ -1,6 +1,6 @@
 # esp-file-server
 
-This project is an asynchronous web file server created with PlatformIO for ESP8266 using the Arduino framework. It allows you to upload, download, delete, and manage files and folders on the ESP8266 device using a web interface.
+This project is an asynchronous web file server created with PlatformIO for ESP8266 using the Arduino framework. Using a web interface, it allows you to upload, download, delete, and manage files and folders on the ESP8266 device.
 
 ![Example image](tools/web-view.png)
 
@@ -19,6 +19,7 @@ This project is an asynchronous web file server created with PlatformIO for ESP8
   - [Deleting Files and Folders](#deleting-files-and-folders)
   - [Viewing File List](#viewing-file-list)
 - [Contributing](#contributing)
+- [Extra](#extra)
 - [License](#license)
 
 ## Introduction
@@ -37,7 +38,7 @@ This project provides a convenient way to manage files on an ESP8266 device usin
 
 ### Checking Your IP Address
 
-Before connecting to the ESP8266 device, it's essential to know its IP address. You can find this by opening the serial terminal in your PlatformIO IDE or Arduino IDE after uploading the code to the ESP8266. The IP address will be displayed on the serial terminal.
+Before connecting to the ESP8266 device, knowing its IP address is essential. You can find this by opening the serial terminal in your PlatformIO IDE or Arduino IDE after uploading the code to the ESP8266. The IP address will be displayed on the serial terminal.
 
 ### Connecting Your Device
 
@@ -67,7 +68,7 @@ Before connecting to the ESP8266 device, it's essential to know its IP address. 
 
 ### Downloading Files
 
-1. From the main page, click on the file name you want to download.
+1. Click on the file name you want to download from the main page.
 2. The file will be downloaded to your computer.
 
 ### Deleting Files and Folders
@@ -77,7 +78,7 @@ Before connecting to the ESP8266 device, it's essential to know its IP address. 
 
 ### Creating Folders
 
-1. Enter the name of the new folder to text box "Folder name."
+1. Enter the name of the new folder in the text box "Folder name."
 2. From the main page, click the "Create" button.
 3. The new folder will be created on the device.
 
@@ -85,6 +86,10 @@ Before connecting to the ESP8266 device, it's essential to know its IP address. 
 
 1. Access the main page of the web interface.
 2. The list of files and folders on the device will be displayed.
+
+## Extra
+
+I'm tired of waiting for the firmware to be uploaded to the device. So I somehow implemented a Python server to test the code without a device. This server is built for debugging purposes only, so use it at your own risk
 
 ## Contributing
 
