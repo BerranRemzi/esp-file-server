@@ -2,7 +2,7 @@
 
 This project is an asynchronous web file server created with PlatformIO for ESP8266 using the Arduino framework. Using a web interface, it allows you to upload, download, delete, and manage files and folders on the ESP8266 device.
 
-![Example image](tools/web-view.png)
+![Example image](tools/web-view.gif)
 
 ## Table of Contents
 
